@@ -90,28 +90,29 @@ function CostForm() {
   ];
 
   const accommodationLevels = [
-    {
-      value: "Budget",
-      label: "Budget",
-      price: 80,
-      description: "Under $80/night",
-      details: "3-star hotels, basic amenities",
-    },
-    {
-      value: "Standard",
-      label: "Standard",
-      price: 115,
-      description: "$80 - $150/night",
-      details: "4-star hotels, good amenities",
-    },
-    {
-      value: "Luxury",
-      label: "Luxury",
-      price: 150,
-      description: "$150+/night",
-      details: "5-star hotels, premium amenities",
-    },
+  {
+    value: "Budget",
+    label: "Budget",
+    price: 60,
+    description: "Typically under $70/night",
+    details: "2–3 star hotels or guesthouses — clean rooms, basic amenities, often outside city center.",
+  },
+  {
+    value: "Standard",
+    label: "Standard",
+    price: 120,
+    description: "$80–150/night on average",
+    details: "3–4 star hotels — comfortable rooms, good location, breakfast included, modern facilities.",
+  },
+  {
+    value: "Luxury",
+    label: "Luxury",
+    price: 220,
+    description: "$180–350+/night",
+    details: "5-star or boutique hotels — premium amenities, sea or city views, fine dining, spa & concierge services.",
+  },
   ];
+
 
   // Normalize Arabic-Indic digits to ASCII
   function normalizeDigits(input) {
