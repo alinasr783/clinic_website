@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import Button from "../../components/Button";
 
-const SERPAPI_KEY = "24fbf0159b1be71bdf0ee00faf8c3121210f8d04d66e53e8607fe4d80bc50a41";
-const GEMINI_API_KEY = "AIzaSyBpknrp9hVYU6zgY86QIQedSl4NmjrPCj4";
+const SERPAPI_KEY = import.meta.env.VITE_SERPAPI_KEY;
 
 // Basic city -> IATA mapping (English & Arabic) for common inputs
 const CITY_TO_IATA = {
@@ -139,38 +138,12 @@ function CostForm() {
     const upper = cleaned.toUpperCase();
     if (CITY_TO_IATA[upper]) return CITY_TO_IATA[upper];
 
-    // Fallback: use Gemini to infer the most likely IATA code from the input
-    if (!GEMINI_API_KEY) {
-      throw new Error("Invalid departure airport. Enter a 3-letter IATA (e.g., JFK, LHR) or set a Gemini API key to auto-detect.");
-    }
-
-    const prompt = `You are an expert travel assistant. Given the user's departure airport or city input, return ONLY the 3-letter IATA airport code in UPPERCASE for the primary international airport serving that location. If multiple plausible airports exist, choose the most commonly used for international flights. Do not include any additional words or punctuation.\nInput: ${cleaned}`;
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Gemini request failed: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const match = text.toUpperCase().match(/\b[A-Z]{3}\b/);
-    if (match) return match[0];
-
+    // Fallback disabled for production: require explicit IATA code input
     throw new Error("Unable to resolve departure airport. Please enter a 3-letter IATA code like JFK or LHR.");
   }
 
 async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, departDate, returnDate) {
-  if (!SERPAPI_KEY) {
-    throw new Error("Missing SerpApi API key");
-  }
+  // Removed direct requirement of SERPAPI_KEY on client; in production, the serverless function injects the key.
   const codeRegex = /^[A-Za-z]{3}$/;
   if (!codeRegex.test(departureAirportCode)) {
     throw new Error("Invalid departure airport code. Use 3-letter IATA (e.g., JFK, LHR)");
@@ -182,15 +155,22 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
     throw new Error("Missing travel dates");
   }
 
+  // Build query params
+  const params = new URLSearchParams({
+    engine: "google_flights",
+    departure_id: departureAirportCode.toUpperCase(),
+    arrival_id: arrivalAirportCode.toUpperCase(),
+    outbound_date: departDate,
+    return_date: returnDate,
+    currency: "USD",
+    hl: "en",
+  });
+  // In local development, append api_key if available to use Vite proxy directly
+  if (import.meta.env.DEV && SERPAPI_KEY) {
+    params.set("api_key", SERPAPI_KEY);
+  }
 
-  
-  // Use dev proxy to avoid CORS during development
-  const query = `engine=google_flights&departure_id=${encodeURIComponent(
-    departureAirportCode.toUpperCase()
-  )}&arrival_id=${encodeURIComponent(arrivalAirportCode.toUpperCase())}&outbound_date=${encodeURIComponent(
-    departDate
-  )}&return_date=${encodeURIComponent(returnDate)}&currency=USD&hl=en&api_key=${SERPAPI_KEY}`;
-  const url = `/api/serp/search.json?${query}`;
+  const url = `/api/serp/search.json?${params.toString()}`;
 
   // Verbose logging (without exposing API key in logs)
   console.log("[SerpApi] Request params:", {
@@ -200,6 +180,7 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
     return_date: returnDate,
     currency: "USD",
     hl: "en",
+    api_key_added_in_dev: Boolean(import.meta.env.DEV && SERPAPI_KEY),
   });
 
   const res = await fetch(url, { method: "GET" });
@@ -209,6 +190,7 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
     console.error("[SerpApi] Error raw response:", errText);
     throw new Error(`SerpApi request failed: ${res.status} ${errText}`);
   }
+
   // Log raw response text and parsed JSON for full visibility
   const rawText = await res.clone().text();
   console.log("[SerpApi] Raw response text:", rawText);

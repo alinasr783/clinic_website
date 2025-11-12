@@ -2,13 +2,13 @@ const AboutSection = () => {
   const counter = [
     {
       id: 1,
-      count: "15+",
-      title: "Years of experience",
+      count: "1000+",
+      title: "Satisfied Patients",
     },
     {
       id: 2,
-      count: "1000+",
-      title: "Successful implants",
+      count: "15+",
+      title: "Years of Experience",
     },
     {
       id: 3,
@@ -61,10 +61,7 @@ const AboutSection = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
               <div className="space-y-4">
                 <p className="text-sm text-gray-300 leading-relaxed">
-                  We specialize in dental implants and comprehensive
-                  full-mouth rehabilitation for patients from around the world.
-                  Our approach combines advanced technology, internationally
-                  standardized protocols, and a warm, supportive atmosphere.
+                  At MI Implants, led by Dr. Mohamed Ibrahim, we specialize in dental implants and full-mouth rehabilitation, delivering smiles with precision, comfort, and minimal visits. Using advanced techniques such as zygomatic and subperiosteal implants, guided implant surgery, and immediate-load protocols, we provide solutions for even the most complex cases.
                 </p>
 
                 <p className="text-sm text-gray-300 leading-relaxed">

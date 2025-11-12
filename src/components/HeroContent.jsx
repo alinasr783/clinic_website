@@ -73,14 +73,14 @@ function HeroContent() {
           className="font-script font-light text-white 
             leading-none text-[60px] md:text-[90px] lg:text-[120px]"
           style={{willChange: "transform, opacity"}}>
-          Aesthetic
+          Implant
         </Motion.h1>
         <Motion.h2
           variants={fadeOnly}
           className="font-bold text-white uppercase tracking-wider 
           leading-none text-[45px] sm:text-[90px] md:text-[120px] lg:text-[160px]"
           style={{willChange: "transform, opacity"}}>
-          DENTISTRY
+          EXcellence
         </Motion.h2>
       </Motion.div>
 
