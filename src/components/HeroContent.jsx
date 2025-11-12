@@ -6,17 +6,12 @@ function HeroContent() {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [startAnimation, setStartAnimation] = useState(false);
 
+  // Removed manual JS preloading of hero.png to avoid unused-preload warnings on non-hero pages
   useEffect(() => {
-    const img = new Image();
-    img.src = "/hero.png";
-    img.onload = () => {
-      setImageLoaded(true);
-      setTimeout(() => setStartAnimation(true), 100);
-    };
-    img.onerror = () => {
-      setImageLoaded(true);
-      setStartAnimation(true);
-    };
+    // Start animation shortly after mount without manual preloading
+    setImageLoaded(true);
+    const t = setTimeout(() => setStartAnimation(true), 100);
+    return () => clearTimeout(t);
   }, []);
 
   const container = {
