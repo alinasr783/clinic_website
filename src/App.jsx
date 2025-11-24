@@ -6,6 +6,8 @@ import Booking from "./pages/Booking";
 import CalculateCost from "./pages/CalculateCost";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import ArticlesList from "./pages/ArticlesList";
+import Article from "./pages/Article";
 import {Toaster} from "react-hot-toast";
 
 function App() {
@@ -17,6 +19,8 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/cost" element={<CalculateCost />} />
           {/* <Route path="/booking" element={<Booking />} /> */}
+          <Route path="/articles" element={<ArticlesList />} />
+          <Route path="/articles/:id" element={<Article />} />
           <Route
             path="/dashboard"
             element={

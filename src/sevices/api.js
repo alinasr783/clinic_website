@@ -131,5 +131,50 @@ export async function deleteService(serviceId) {
         throw new Error('Failed to delete service');
     }
 
-    return true;
+  return true;
+}
+
+export async function getFeaturedArticles(limit = 3) {
+    const { data, error } = await supabase
+        .from('blog')
+        .select('*')
+        .eq('show_on_homepage', true)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+    if (error) {
+        console.error(error);
+        throw new Error('Failed to fetch articles');
+    }
+
+    return data || [];
+}
+
+export async function getAllArticles() {
+    const { data, error } = await supabase
+        .from('blog')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error(error);
+        throw new Error('Failed to fetch articles');
+    }
+
+    return data || [];
+}
+
+export async function getArticleById(id) {
+    const { data, error } = await supabase
+        .from('blog')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+    if (error) {
+        console.error(error);
+        throw new Error('Failed to fetch article');
+    }
+
+    return data;
 }

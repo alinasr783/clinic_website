@@ -10,6 +10,7 @@ import Hero from "./Hero";
 import MobileMenu from "./MobileMenu";
 import QASection from "./QASection";
 import ServicesAndPricing from "./ServicesAndPricing";
+import FeaturedArticles from "./FeaturedArticles";
 // Removed: import TestimonialVideos from "./TestimonialVideos";
 
 function Home() {
@@ -28,6 +29,9 @@ function Home() {
 
       <div className="mt-3 sm:mt-4 md:mt-6">
         <ServicesAndPricing />
+      </div>
+      <div className="mt-3 sm:mt-4 md:mt-6">
+        <FeaturedArticles />
       </div>
       {/* <div className="mt-3 sm:mt-4 md:mt-6">
         <ConsultationSection />

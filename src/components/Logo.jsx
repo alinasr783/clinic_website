@@ -4,7 +4,7 @@ function Logo() {
   return (
     <Link to="/" className="flex flex-col items-center gap-1">
       <img
-        src="/logo.jpeg"
+        src="https://i.ibb.co/KzFqYBWY/Picture1.png"
         alt="Logo"
         className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover"
       />
