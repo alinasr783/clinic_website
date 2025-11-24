@@ -8,9 +8,9 @@ function Header() {
       <div className="flex md:hidden items-center justify-start gap-2 sm:gap-4 py-2 sm:py-3">
         <Logo />
         <a
-          href="tel:+79859201221"
+          href="tel:+201009003711"
           className="text-xs sm:text-sm text-white whitespace-nowrap">
-          +7 (985) 920 1221
+          +20 10 09003711
         </a>
       </div>
 
@@ -48,9 +48,9 @@ function Header() {
           </a>
 
           <a
-            href="tel:+79859201221"
+            href="tel:+201009003711"
             className="text-sm text-white whitespace-nowrap">
-            +7 (985) 920 1221
+            +20 10 09003711
           </a>
         </div>
       </div>

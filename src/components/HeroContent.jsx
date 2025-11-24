@@ -66,14 +66,16 @@ function HeroContent() {
         <Motion.h1
           variants={fadeOnly}
           className="font-script font-light text-white 
-            leading-none text-[60px] md:text-[90px] lg:text-[120px]"
+            leading-none text-[60px] md:text-[90px] lg:text-[120px] notranslate"
+          translate="no"
           style={{willChange: "transform, opacity"}}>
           Implant
         </Motion.h1>
         <Motion.h2
           variants={fadeOnly}
           className="font-bold text-white uppercase tracking-wider 
-          leading-none text-[45px] sm:text-[90px] md:text-[120px] lg:text-[160px]"
+          leading-none text-[45px] sm:text-[90px] md:text-[120px] lg:text-[160px] notranslate"
+          translate="no"
           style={{willChange: "transform, opacity"}}>
           EXcellence
         </Motion.h2>
