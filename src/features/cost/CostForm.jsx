@@ -325,10 +325,11 @@ async function fetchHotelsCairo(checkInDate, checkOutDate) {
     const rating = typeof h?.overall_rating === "number" ? h.overall_rating : (typeof h?.rating === "number" ? h.rating : null);
     const reviews = typeof h?.reviews === "number" ? h.reviews : (typeof h?.reviews_count === "number" ? h.reviews_count : null);
     const location = h?.location || h?.neighborhood || h?.vicinity || null;
-    const link = h?.link || h?.serpapi_property_url || h?.google_maps_url || null;
+    const thumbnail = h?.thumbnail || (Array.isArray(h?.images) && h.images[0]?.thumbnail) || null;
+    const hotelClass = typeof h?.hotel_class === "number" ? h.hotel_class : null;
     const pricePerNight = nightly ?? (total ? total / nightsCalc : null);
     if (pricePerNight && pricePerNight > 5 && pricePerNight < 2000) {
-      candidates.push({ name, pricePerNight, rating: rating ?? null, reviews: reviews ?? null, location, link });
+      candidates.push({ name, pricePerNight, rating: rating ?? null, reviews: reviews ?? null, location, thumbnail, hotelClass });
     }
   });
   if (candidates.length === 0) return { candidates: [], picks: { cheapest: null, topRated: null, bestValue: null } };
@@ -630,23 +631,31 @@ async function fetchHotelsCairo(checkInDate, checkOutDate) {
                   );
                 }
                 const isSelected = selectedHotel?.name === opt.name && selectedHotel?.pricePerNight === opt.pricePerNight;
+                const stars = opt.rating != null ? Array(Math.max(0, Math.min(5, Math.round(opt.rating)))).fill('★').join('') : '';
                 return (
                   <div
                     key={`${k}-${opt.name}-${opt.pricePerNight}`}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected ? "border-gray-100 bg-blue-500/10" : "border-gray-600 bg-dark-3"}`}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected ? "border-blue-400 bg-blue-500/10" : "border-gray-600 bg-dark-3"}`}
                     onClick={() => handleSelectHotel(opt)}
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <div className="text-lg font-semibold">${Math.round(opt.pricePerNight).toLocaleString()} <span className="text-sm text-gray-400">USD/night</span></div>
-                        <div className="text-xs text-gray-400">{label}</div>
-                      </div>
-                      <span className="px-2 py-1 text-xs rounded bg-blue-600 text-white">{opt.rating != null ? `${opt.rating.toFixed(1)}★` : "N/A"}{opt.reviews != null ? ` • ${opt.reviews}` : ""}</span>
+                    <div className="relative mb-3">
+                      {opt.thumbnail && (
+                        <img src={opt.thumbnail} alt={opt.name} className="h-28 w-full object-cover rounded-md" />
+                      )}
+                      <span className="absolute top-2 right-2 px-2 py-1 text-xs rounded bg-blue-600 text-white">{label}</span>
                     </div>
-                    <div className="text-sm text-gray-300 space-y-1">
-                      <div className="font-semibold">{opt.name}</div>
-                      {opt.location && <div className="text-xs text-gray-400">{opt.location}</div>}
-                      {opt.link && <a href={opt.link} target="_blank" rel="noreferrer" className="inline-block mt-2 px-3 py-1 text-xs rounded border border-blue-500 text-blue-400 hover:bg-blue-500/10">View Details</a>}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-lg font-semibold">${Math.round(opt.pricePerNight).toLocaleString()} <span className="text-sm text-gray-400">USD/night</span></div>
+                      <div className="text-xs text-gray-400">{opt.hotelClass ? `${opt.hotelClass}★ class` : ''}</div>
+                    </div>
+                    <div className="text-sm text-gray-300">
+                      <div className="font-semibold truncate">{opt.name}</div>
+                      {opt.location && <div className="text-xs text-gray-400 truncate">{opt.location}</div>}
+                      <div className="mt-2 flex items-center gap-2 text-xs">
+                        <span className="text-yellow-400">{stars}</span>
+                        <span className="text-gray-400">{opt.rating != null ? opt.rating.toFixed(1) : 'N/A'}</span>
+                        {opt.reviews != null && <span className="text-gray-500">• {opt.reviews} reviews</span>}
+                      </div>
                     </div>
                   </div>
                 );
