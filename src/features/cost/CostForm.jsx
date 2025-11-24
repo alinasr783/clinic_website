@@ -276,7 +276,9 @@ async function fetchHotelsCairo(checkInDate, checkOutDate) {
     q: "Cairo",
     check_in_date: checkInDate,
     check_out_date: checkOutDate,
+    adults: "2",
     currency: "USD",
+    gl: "us",
     hl: "en",
   });
   if (import.meta.env.DEV && SERPAPI_KEY) {
@@ -300,18 +302,31 @@ async function fetchHotelsCairo(checkInDate, checkOutDate) {
         if (Number.isFinite(n)) return n;
       }
     }
+    if (typeof p === "object") {
+      if (typeof p.extracted_lowest === "number") return p.extracted_lowest;
+      if (typeof p.extracted_before_taxes_fees === "number") return p.extracted_before_taxes_fees;
+      if (typeof p.lowest === "string") return parsePrice(p.lowest);
+      if (typeof p.before_taxes_fees === "string") return parsePrice(p.before_taxes_fees);
+    }
     return null;
   };
   const candidates = [];
+  const nightsCalc = (() => {
+    const d1 = new Date(checkInDate);
+    const d2 = new Date(checkOutDate);
+    const n = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  })();
+
   props.forEach((h) => {
     const name = h?.name || h?.title || "Hotel";
-    const nightly = parsePrice(h?.rate_per_night ?? h?.price ?? h?.rate_per_room ?? h?.rates?.[0]?.rate_per_night);
+    const nightly = parsePrice(h?.rate_per_night) ?? parsePrice(h?.price) ?? parsePrice(h?.rate_per_room) ?? parsePrice(h?.rates?.[0]?.rate_per_night) ?? parsePrice(h?.prices?.[0]?.rate_per_night);
     const total = parsePrice(h?.total_rate ?? h?.total_price);
     const rating = typeof h?.overall_rating === "number" ? h.overall_rating : (typeof h?.rating === "number" ? h.rating : null);
     const reviews = typeof h?.reviews === "number" ? h.reviews : (typeof h?.reviews_count === "number" ? h.reviews_count : null);
     const location = h?.location || h?.neighborhood || h?.vicinity || null;
     const link = h?.link || h?.serpapi_property_url || h?.google_maps_url || null;
-    const pricePerNight = nightly ?? (total && typeof data?.nights === "number" && data.nights > 0 ? total / data.nights : null);
+    const pricePerNight = nightly ?? (total ? total / nightsCalc : null);
     if (pricePerNight && pricePerNight > 5 && pricePerNight < 2000) {
       candidates.push({ name, pricePerNight, rating: rating ?? null, reviews: reviews ?? null, location, link });
     }
