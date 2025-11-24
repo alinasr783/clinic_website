@@ -62,6 +62,11 @@ function CostForm() {
   const [cheapestFlight, setCheapestFlight] = useState(null);
   const [flightOptions, setFlightOptions] = useState([]);
   const [selectedFlight, setSelectedFlight] = useState(null);
+  const [hotelError, setHotelError] = useState(null);
+  const [hotelCandidates, setHotelCandidates] = useState([]);
+  const [hotelPicks, setHotelPicks] = useState({ cheapest: null, topRated: null, bestValue: null });
+  const [selectedHotel, setSelectedHotel] = useState(null);
+  const [isFetchingHotels, setIsFetchingHotels] = useState(false);
 
   const treatmentOptions = [
     {value: "single-implant", label: "Single Implant", price: 800},
@@ -262,6 +267,68 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
   return { price: value, selected: null, options: [] };
 }
 
+async function fetchHotelsCairo(checkInDate, checkOutDate) {
+  if (!checkInDate || !checkOutDate) {
+    throw new Error("Missing hotel dates");
+  }
+  const params = new URLSearchParams({
+    engine: "google_hotels",
+    q: "Cairo",
+    check_in_date: checkInDate,
+    check_out_date: checkOutDate,
+    currency: "USD",
+    hl: "en",
+  });
+  if (import.meta.env.DEV && SERPAPI_KEY) {
+    params.set("api_key", SERPAPI_KEY);
+  }
+  const url = `/api/serp/search.json?${params.toString()}`;
+  const res = await fetch(url, { method: "GET" });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`SerpApi hotels failed: ${res.status} ${t}`);
+  }
+  const data = await res.json();
+  const props = Array.isArray(data?.properties) ? data.properties : [];
+  const parsePrice = (p) => {
+    if (p == null) return null;
+    if (typeof p === "number" && Number.isFinite(p)) return p;
+    if (typeof p === "string") {
+      const m = p.match(/\$?\s*(\d{2,}(?:[.,]\d{3})*(?:[.,]\d+)?)/);
+      if (m) {
+        const n = parseFloat(m[1].replace(/,/g, ""));
+        if (Number.isFinite(n)) return n;
+      }
+    }
+    return null;
+  };
+  const candidates = [];
+  props.forEach((h) => {
+    const name = h?.name || h?.title || "Hotel";
+    const nightly = parsePrice(h?.rate_per_night ?? h?.price ?? h?.rate_per_room ?? h?.rates?.[0]?.rate_per_night);
+    const total = parsePrice(h?.total_rate ?? h?.total_price);
+    const rating = typeof h?.overall_rating === "number" ? h.overall_rating : (typeof h?.rating === "number" ? h.rating : null);
+    const reviews = typeof h?.reviews === "number" ? h.reviews : (typeof h?.reviews_count === "number" ? h.reviews_count : null);
+    const location = h?.location || h?.neighborhood || h?.vicinity || null;
+    const link = h?.link || h?.serpapi_property_url || h?.google_maps_url || null;
+    const pricePerNight = nightly ?? (total && typeof data?.nights === "number" && data.nights > 0 ? total / data.nights : null);
+    if (pricePerNight && pricePerNight > 5 && pricePerNight < 2000) {
+      candidates.push({ name, pricePerNight, rating: rating ?? null, reviews: reviews ?? null, location, link });
+    }
+  });
+  if (candidates.length === 0) return { candidates: [], picks: { cheapest: null, topRated: null, bestValue: null } };
+  const cheapest = [...candidates].sort((a, b) => a.pricePerNight - b.pricePerNight)[0];
+  const withReviews = candidates.filter((c) => (c.reviews ?? 0) >= 20);
+  const topRated = (withReviews.length > 0 ? [...withReviews] : [...candidates]).sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
+  const score = (c) => {
+    const r = c.rating ?? 0;
+    const p = c.pricePerNight;
+    return (r * r) / (p || 1);
+  };
+  const bestValue = [...candidates].sort((a, b) => score(b) - score(a))[0];
+  return { candidates, picks: { cheapest, topRated, bestValue } };
+}
+
   const handleInputChange = (e) => {
     const {name, value} = e.target;
     setFormData((prev) => ({
@@ -298,12 +365,11 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
     const nights = Math.ceil((returnDate - departure) / (1000 * 60 * 60 * 24));
 
     const treatmentCost = selectedTreatment ? selectedTreatment.price : 0;
-    const accommodationCost = selectedAccommodation
-      ? selectedAccommodation.price * nights
-      : 0;
+    let accommodationCost = selectedAccommodation ? selectedAccommodation.price * nights : 0;
 
     let estimatedFlightCost = 0;
     setFlightError(null);
+    setHotelError(null);
     try {
       const departureCode = await resolveDepartureCode(formData.departureAirport);
       const flightResult = await fetchFlightPrice(
@@ -316,14 +382,25 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
       setCheapestFlight(flightResult.selected);
       setFlightOptions(flightResult.options || []);
       setSelectedFlight(flightResult.selected || null);
+      const hotelsResult = await fetchHotelsCairo(formData.departureDate, formData.returnDate);
+      setHotelCandidates(hotelsResult.candidates);
+      setHotelPicks(hotelsResult.picks);
+      setSelectedHotel(hotelsResult.picks.cheapest || null);
+      if (hotelsResult.picks.cheapest?.pricePerNight) {
+        accommodationCost = Math.round(hotelsResult.picks.cheapest.pricePerNight) * nights;
+      }
     } catch (err) {
       console.error(err);
       setFlightError(
         err?.message || "Unable to fetch flight price. We used 0 for flight cost."
       );
+      setHotelError(err?.message || "Unable to fetch hotels. Using accommodation level prices.");
       setCheapestFlight(null);
       setFlightOptions([]);
       setSelectedFlight(null);
+      setHotelCandidates([]);
+      setHotelPicks({ cheapest: null, topRated: null, bestValue: null });
+      setSelectedHotel(null);
     }
     const total = treatmentCost + accommodationCost + estimatedFlightCost;
     setTotalCost({
@@ -352,6 +429,47 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
     });
   };
 
+  const handleSelectHotel = (opt) => {
+    setSelectedHotel(opt);
+    setHotelError(null);
+    setTotalCost((prev) => {
+      const prevObj = prev || {};
+      const pricePerNight = typeof opt?.pricePerNight === "number" ? Math.round(opt.pricePerNight) : null;
+      const nights = prevObj.nights || 0;
+      const newHotel = pricePerNight != null ? pricePerNight * nights : prevObj.accommodation || 0;
+      return {
+        ...prevObj,
+        accommodation: newHotel,
+        total: (prevObj.treatment || 0) + (prevObj.flight || 0) + newHotel,
+      };
+    });
+  };
+
+  useEffect(() => {
+    if (!formData.departureDate || !formData.returnDate) {
+      setHotelCandidates([]);
+      setHotelPicks({ cheapest: null, topRated: null, bestValue: null });
+      setSelectedHotel(null);
+      return;
+    }
+    setIsFetchingHotels(true);
+    setHotelError(null);
+    fetchHotelsCairo(formData.departureDate, formData.returnDate)
+      .then((hotelsResult) => {
+        setHotelCandidates(hotelsResult.candidates);
+        setHotelPicks(hotelsResult.picks);
+        setSelectedHotel(hotelsResult.picks.cheapest || null);
+      })
+      .catch((err) => {
+        console.error(err);
+        setHotelError(err?.message || "Unable to fetch hotels");
+        setHotelCandidates([]);
+        setHotelPicks({ cheapest: null, topRated: null, bestValue: null });
+        setSelectedHotel(null);
+      })
+      .finally(() => setIsFetchingHotels(false));
+  }, [formData.departureDate, formData.returnDate]);
+
   // Live recompute totals when selection or inputs change
   useEffect(() => {
     // Require dates to compute nights
@@ -365,7 +483,12 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
     const nights = Math.ceil((returnDate - departure) / (1000 * 60 * 60 * 24));
 
     const treatmentCost = selectedTreatment ? selectedTreatment.price : 0;
-    const accommodationCost = selectedAccommodation ? selectedAccommodation.price * nights : 0;
+    let accommodationCost = selectedAccommodation ? selectedAccommodation.price * nights : 0;
+    if (selectedHotel?.pricePerNight != null) {
+      accommodationCost = Math.round(selectedHotel.pricePerNight) * nights;
+    } else if (hotelPicks.cheapest?.pricePerNight != null) {
+      accommodationCost = Math.round(hotelPicks.cheapest.pricePerNight) * nights;
+    }
 
     const flightPrice =
       typeof selectedFlight?.price === "number"
@@ -381,7 +504,7 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
       nights,
       total: treatmentCost + accommodationCost + flightPrice,
     });
-  }, [selectedFlight, formData.accommodationLevel, formData.treatmentType, formData.departureDate, formData.returnDate]);
+  }, [selectedFlight, selectedHotel, hotelPicks, formData.accommodationLevel, formData.treatmentType, formData.departureDate, formData.returnDate]);
 
   return (
     <div className="bg-dark-2 rounded-lg p-6 w-full max-w-4xl">
@@ -464,35 +587,60 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
           </select>
         </div>
 
-        {/* Accommodation Level */}
+        {/* Hotels in Cairo (Cheapest / Top Rated / Best Value) */}
         <div>
           <label className="block text-sm font-medium mb-4 text-gray-300">
-            Accommodation Level
+            Hotels in Cairo
           </label>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {accommodationLevels.map((level) => (
-              <div
-                key={level.value}
-                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  formData.accommodationLevel === level.value
-                    ? "border-gray-100 bg-blue-500/10"
-                    : "border-gray-600 bg-dark-3"
-                }`}
-                onClick={() =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    accommodationLevel: level.value,
-                  }))
-                }>
-                <h3 className="text-lg font-semibold mb-1">{level.label}</h3>
-                <p className="text-gray-300 text-sm mb-2">
-                  {level.description}
-                </p>
-                <p className="text-gray-400 text-xs">{level.details}</p>
-              </div>
-            ))}
-          </div>
+          {!formData.departureDate || !formData.returnDate ? (
+            <p className="text-xs text-gray-400">Select travel dates to see hotel picks.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[{ k: "cheapest", label: "Cheapest" }, { k: "topRated", label: "Top Rated" }, { k: "bestValue", label: "Best Value" }].map(({ k, label }) => {
+                const opt = hotelPicks[k];
+                if (isFetchingHotels && !opt) {
+                  return (
+                    <div key={k} className="p-4 border-2 rounded-lg bg-dark-3 border-gray-600 animate-pulse">
+                      <div className="h-5 w-24 bg-gray-700 rounded mb-2" />
+                      <div className="h-4 w-32 bg-gray-700 rounded mb-1" />
+                      <div className="h-3 w-48 bg-gray-700 rounded" />
+                    </div>
+                  );
+                }
+                if (!opt) {
+                  return (
+                    <div key={k} className="p-4 border-2 rounded-lg bg-dark-3 border-gray-600">
+                      <div className="text-sm text-gray-400">No data</div>
+                    </div>
+                  );
+                }
+                const isSelected = selectedHotel?.name === opt.name && selectedHotel?.pricePerNight === opt.pricePerNight;
+                return (
+                  <div
+                    key={`${k}-${opt.name}-${opt.pricePerNight}`}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected ? "border-gray-100 bg-blue-500/10" : "border-gray-600 bg-dark-3"}`}
+                    onClick={() => handleSelectHotel(opt)}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <div className="text-lg font-semibold">${Math.round(opt.pricePerNight).toLocaleString()} <span className="text-sm text-gray-400">USD/night</span></div>
+                        <div className="text-xs text-gray-400">{label}</div>
+                      </div>
+                      <span className="px-2 py-1 text-xs rounded bg-blue-600 text-white">{opt.rating != null ? `${opt.rating.toFixed(1)}★` : "N/A"}{opt.reviews != null ? ` • ${opt.reviews}` : ""}</span>
+                    </div>
+                    <div className="text-sm text-gray-300 space-y-1">
+                      <div className="font-semibold">{opt.name}</div>
+                      {opt.location && <div className="text-xs text-gray-400">{opt.location}</div>}
+                      {opt.link && <a href={opt.link} target="_blank" rel="noreferrer" className="inline-block mt-2 px-3 py-1 text-xs rounded border border-blue-500 text-blue-400 hover:bg-blue-500/10">View Details</a>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {hotelError && (
+            <p className="text-xs text-red-400 mt-2">{hotelError}</p>
+          )}
         </div>
 
         <div className="text-center mt-8">
@@ -585,6 +733,9 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
                   {flightError && (
                     <p className="text-red-400 text-xs text-center">{flightError}</p>
                   )}
+                  {hotelError && (
+                    <p className="text-red-400 text-xs text-center">{hotelError}</p>
+                  )}
                   <hr className="border-gray-600" />
                   <div className="flex justify-between text-xl font-semibold">
                     <span>Total Estimated Cost:</span>
@@ -598,6 +749,7 @@ async function fetchFlightPrice(departureAirportCode, arrivalAirportCode, depart
             )}
           </div>
         )}
+
       </form>
     </div>
   );

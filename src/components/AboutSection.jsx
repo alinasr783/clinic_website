@@ -10,16 +10,6 @@ const AboutSection = () => {
       count: "15+",
       title: "Years of Experience",
     },
-    {
-      id: 3,
-      count: 10,
-      title: "Dentists",
-    },
-    {
-      id: 4,
-      count: "5+",
-      title: "Branches",
-    },
   ];
 
   return (
@@ -34,19 +24,31 @@ const AboutSection = () => {
           </div>
         </div>
 
-        <div className="text-center mb-12">
-          <h2
-            className="text-2xl lg:text-3xl xl:text-4xl 
-            font-semibold leading-tight max-w-3xl mx-auto">
-            Expert Dental Implants & Full-Mouth Rehabilitation — trusted by
-            patients worldwide
-          </h2>
-        </div>
+        
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-          <div className="grid grid-cols-2 gap-6 md:max-w-[450px]">
+          <div className="space-y-6 max-w-3xl">
+            <p className="text-base text-gray-300 leading-relaxed">
+              At MI Implants, led by Dr. Mohamed Ibrahim, we specialize in dental implants and full-mouth rehabilitation, delivering smiles with precision, comfort, and minimal visits. Using advanced techniques such as zygomatic and subperiosteal implants, guided implant surgery, and immediate-load protocols, we provide solutions for even the most complex cases.
+            </p>
+            <p className="text-base text-gray-300 leading-relaxed">
+              Our approach is patient-centered: every treatment is tailored to your needs, ensuring lasting results, natural aesthetics, and long-term oral health. We also provide dedicated support for international patients, making travel, consultation, and treatment seamless and stress-free.
+            </p>
+            <div className="mt-6">
+              <img
+                src="https://i.ibb.co/tpnsMmf5/Picture1.jpg"
+                alt="About section image"
+                className="w-full h-64 md:h-72 lg:h-80 object-cover rounded-2xl border border-white/10"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 md:max-w-[450px] lg:max-w-none">
             {counter.map((item) => (
-              <div className="text-left" key={item.id}>
+              <div
+                key={item.id}
+                className="bg-white/5 rounded-xl p-6 border border-white/10 hover:bg-white/10 transition"
+              >
                 <div className="text-3xl lg:text-4xl font-semibold mb-2">
                   {item.count}
                 </div>
@@ -55,47 +57,6 @@ const AboutSection = () => {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-              <div className="space-y-4">
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  At MI Implants, led by Dr. Mohamed Ibrahim, we specialize in dental implants and full-mouth rehabilitation, delivering smiles with precision, comfort, and minimal visits. Using advanced techniques such as zygomatic and subperiosteal implants, guided implant surgery, and immediate-load protocols, we provide solutions for even the most complex cases.
-                </p>
-
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  Every plan is tailored to your needs — from single-tooth
-                  replacement to full-arch solutions. With 15+ years of
-                  experience and 1000+ successful implants, comfort, safety,
-                  and lasting results are at the heart of our care.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  Our team continuously trains on the latest implant systems
-                  and techniques to deliver predictable outcomes in fewer
-                  visits. We prioritize minimally invasive approaches, faster
-                  recovery, and natural aesthetics.
-                </p>
-
-                <p className="text-sm text-gray-300 leading-relaxed">
-                  Treating patients with care: high quality work, safety, and
-                  comfort — our core values.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-center mt-8">
-              <div className="h-64 lg:w-full lg:h-88">
-                <img
-                  src="https://images.pexels.com/photos/4033148/pexels-photo-4033148.jpeg"
-                  alt="Dental implant excellence"
-                  className="w-full h-full object-cover rounded-2xl"
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>
