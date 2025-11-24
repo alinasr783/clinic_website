@@ -7,6 +7,14 @@ export async function getServices() {
 
     if (error) {
         console.error(error);
+        if (error.code === 'PGRST205' || /Could not find the table 'public\.clinic_services'/i.test(error.message || '')) {
+            const fallback = await supabase.from('activities').select('*')
+            if (fallback.error) {
+                console.error(fallback.error);
+                throw new Error('Failed to fetch services');
+            }
+            return fallback.data || []
+        }
         throw new Error('Failed to fetch services');
     }
 
@@ -144,6 +152,9 @@ export async function getFeaturedArticles(limit = 3) {
 
     if (error) {
         console.error(error);
+        if (error.code === 'PGRST205' || /Could not find the table 'public\.blog'/i.test(error.message || '')) {
+            return []
+        }
         throw new Error('Failed to fetch articles');
     }
 
@@ -158,6 +169,9 @@ export async function getAllArticles() {
 
     if (error) {
         console.error(error);
+        if (error.code === 'PGRST205' || /Could not find the table 'public\.blog'/i.test(error.message || '')) {
+            return []
+        }
         throw new Error('Failed to fetch articles');
     }
 
@@ -173,6 +187,9 @@ export async function getArticleById(id) {
 
     if (error) {
         console.error(error);
+        if (error.code === 'PGRST205' || /Could not find the table 'public\.blog'/i.test(error.message || '')) {
+            return null
+        }
         throw new Error('Failed to fetch article');
     }
 
